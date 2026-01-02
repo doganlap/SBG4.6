@@ -1,0 +1,180 @@
+name: Deploy - Staging & Production
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docker/**'
+      - 'saas-admin-portal/**'
+      - 'tenant-admin-portal/**'
+      - 'customer-portal/**'
+      - 'showcase-pages/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+concurrency:
+  group: deployment-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOCKER_REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging.sbg4.6.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging environment
+        run: |
+          echo "Deploying to staging environment..."
+          # Add your staging deployment commands here
+          # Example: SSH to staging server and pull/restart containers
+          # ssh -i ${{ secrets.STAGING_SSH_KEY }} deploy@staging-server 'cd /app && docker compose pull && docker compose up -d'
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+          # Add smoke test commands
+
+      - name: Notify staging deployment
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: 'Staging deployment ${{ job.status }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://sbg4.6.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for approval
+        run: |
+          echo "Waiting for production deployment approval..."
+          # GitHub Actions environments handle approvals automatically
+
+      - name: Create deployment record
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'production',
+              description: 'Deployment from workflow',
+              auto_merge: false,
+              required_contexts: []
+            });
+            console.log('Deployment:', deployment.data.id);
+
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production environment..."
+          # ssh -i ${{ secrets.PROD_SSH_KEY }} deploy@prod-server 'cd /app && docker compose pull && docker compose up -d'
+
+      - name: Health check
+        run: |
+          echo "Running health checks..."
+          for i in {1..30}; do
+            if curl -f https://sbg4.6.example.com/health; then
+              echo "Health check passed"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Health check failed"
+          exit 1
+
+      - name: Update deployment status
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ env.deployment_id }},
+              state: '${{ job.status }}' === 'success' ? 'success' : 'failure',
+              environment_url: 'https://sbg4.6.example.com',
+              description: 'Deployment ${{ job.status }}'
+            });
+
+      - name: Notify production deployment
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: |
+            Production deployment ${{ job.status }}
+            Commit: ${{ github.event.head_commit.message }}
+            Author: ${{ github.event.head_commit.author.name }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author,ref
+
+  rollback:
+    name: Production Rollback
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: failure()
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout previous release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.before }}
+
+      - name: Rollback to previous version
+        run: |
+          echo "Rolling back to previous version..."
+          # ssh -i ${{ secrets.PROD_SSH_KEY }} deploy@prod-server 'cd /app && docker compose pull && docker compose up -d'
+
+      - name: Verify rollback
+        run: |
+          for i in {1..30}; do
+            if curl -f https://sbg4.6.example.com/health; then
+              echo "Rollback successful"
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: 'failure'
+          text: |
+            Production rollback initiated
+            Previous commit: ${{ github.event.before }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author

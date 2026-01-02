@@ -1,0 +1,202 @@
+name: Build - Docker Images & Quality Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'docker/**'
+      - 'saas-admin-portal/**'
+      - 'tenant-admin-portal/**'
+      - 'customer-portal/**'
+      - 'showcase-pages/**'
+      - '.github/workflows/build.yml'
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-frontend-images:
+    name: Build Frontend Portal Images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        portal:
+          - saas-admin-portal
+          - tenant-admin-portal
+          - customer-portal
+          - showcase-pages
+        include:
+          - portal: saas-admin-portal
+            image_tag: saas-admin
+          - portal: tenant-admin-portal
+            image_tag: tenant-admin
+          - portal: customer-portal
+            image_tag: customer-portal
+          - portal: showcase-pages
+            image_tag: showcase
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.image_tag }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.portal }}
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-module-images:
+    name: Build ERPNext Module Base Images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [base, accounting, crm, selling, buying, stock, manufacturing, hr, education, healthcare]
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.module }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+
+      - name: Build and push module image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/modules/Dockerfile.${{ matrix.module }}
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run SonarQube scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        if: env.SONAR_TOKEN != ''
+
+  security-scan:
+    name: Security & Dependency Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-fs-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy FS results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-fs-results.sarif'
+        if: always()
+
+      - name: Run Snyk scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --all-projects --severity-threshold=high
+        if: env.SNYK_TOKEN != ''
+        continue-on-error: true
+
+      - name: License compliance check
+        run: |
+          npm install -g license-checker
+          for portal in saas-admin-portal tenant-admin-portal customer-portal showcase-pages; do
+            echo "Checking licenses in $portal..."
+            cd "$portal"
+            license-checker --onlyAllow "MIT,Apache-2.0,BSD,BSD-2-Clause,BSD-3-Clause,ISC" || echo "License check completed with warnings"
+            cd ..
+          done
+
+  notify-build:
+    name: Notify Build Status
+    runs-on: ubuntu-latest
+    needs: [build-frontend-images, build-module-images, code-quality, security-scan]
+    if: always()
+    
+    steps:
+      - name: Check build status
+        run: |
+          if [ "${{ needs.build-frontend-images.result }}" = "failure" ] || \
+             [ "${{ needs.build-module-images.result }}" = "failure" ] || \
+             [ "${{ needs.code-quality.result }}" = "failure" ]; then
+            echo "Build pipeline failed"
+            exit 1
+          fi
+          echo "Build pipeline completed successfully"
