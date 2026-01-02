@@ -1,0 +1,14 @@
+# Git configuration
+[credential]
+	helper = store
+[user]
+	name = doganlap
+	email = dogan@doganconsult.com
+[push]
+	default = current
+[pull]
+	rebase = false
+[core]
+	autocrlf = input
+[init]
+	defaultBranch = main

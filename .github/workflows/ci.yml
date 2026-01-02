@@ -1,0 +1,86 @@
+name: CI - Lint & Type Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-portals:
+    name: Lint Frontend Portals
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        portal: [saas-admin-portal, tenant-admin-portal, customer-portal, showcase-pages]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.portal }}/package.json
+      
+      - name: Install dependencies
+        working-directory: ${{ matrix.portal }}
+        run: npm ci
+      
+      - name: Run ESLint
+        working-directory: ${{ matrix.portal }}
+        run: npm run lint
+      
+      - name: Type check
+        working-directory: ${{ matrix.portal }}
+        run: npm run type-check
+
+  validate-schemas:
+    name: Validate Database Schemas
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check SQL syntax
+        run: |
+          for schema in database-schemas/*.sql; do
+            echo "Validating $schema..."
+            # Basic SQL syntax check
+            grep -E "(CREATE|ALTER|DROP|INSERT|UPDATE|DELETE)" "$schema" || exit 1
+          done
+
+  validate-scripts:
+    name: Validate Shell Scripts
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      
+      - name: Run shellcheck
+        run: |
+          for script in scripts/*.sh; do
+            echo "Checking $script..."
+            shellcheck "$script" || true
+          done
+
+  docker-build-test:
+    name: Test Docker Builds
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Test base module build
+        run: |
+          docker buildx build \
+            -f docker/modules/Dockerfile.base \
+            -t erpnext-saas/base:test \
+            . --load
