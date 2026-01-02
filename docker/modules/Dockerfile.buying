@@ -1,0 +1,35 @@
+#==============================================================================
+# ERPNext Buying Module Dockerfile
+# Version: 1.0.0
+# Module: 04 - Buying
+# Description: Purchase orders, supplier management
+#==============================================================================
+
+FROM erpnext-saas/base:v16
+
+LABEL module="buying"
+LABEL module_number="04"
+LABEL description="Buying Module - Purchase orders, supplier management"
+
+# Copy Buying custom app
+COPY --chown=frappe:frappe apps/saas_buying_custom apps/saas_buying_custom
+
+# Install the custom app
+RUN bench --site all install-app saas_buying_custom 2>/dev/null || true
+
+# Build assets
+RUN bench build --app saas_buying_custom 2>/dev/null || true
+
+# Module-specific environment variables
+ENV MODULE_NAME=buying
+ENV MODULE_ENABLED=true
+ENV MODULE_FEATURES="purchase_orders,supplier_management,request_for_quotation,supplier_scorecard,purchase_analytics,procurement_workflow,vendor_portal"
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/api/method/frappe.client.get_count?doctype=Purchase%20Order || exit 1
+
+CMD ["bench", "serve", "--host", "0.0.0.0"]

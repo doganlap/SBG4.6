@@ -1,0 +1,35 @@
+#==============================================================================
+# ERPNext CRM Module Dockerfile
+# Version: 1.0.0
+# Module: 02 - CRM
+# Description: Customer relationship management
+#==============================================================================
+
+FROM erpnext-saas/base:v16
+
+LABEL module="crm"
+LABEL module_number="02"
+LABEL description="CRM Module - Customer relationship management"
+
+# Copy CRM custom app
+COPY --chown=frappe:frappe apps/saas_crm_custom apps/saas_crm_custom
+
+# Install the custom app
+RUN bench --site all install-app saas_crm_custom 2>/dev/null || true
+
+# Build assets
+RUN bench build --app saas_crm_custom 2>/dev/null || true
+
+# Module-specific environment variables
+ENV MODULE_NAME=crm
+ENV MODULE_ENABLED=true
+ENV MODULE_FEATURES="lead_management,opportunity_tracking,contact_management,customer_segmentation,campaign_management,email_integration,sales_pipeline,activity_tracking"
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/api/method/frappe.client.get_count?doctype=Lead || exit 1
+
+CMD ["bench", "serve", "--host", "0.0.0.0"]

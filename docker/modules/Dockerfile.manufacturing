@@ -1,0 +1,35 @@
+#==============================================================================
+# ERPNext Manufacturing Module Dockerfile
+# Version: 1.0.0
+# Module: 06 - Manufacturing
+# Description: Production planning, BOM, work orders
+#==============================================================================
+
+FROM erpnext-saas/base:v16
+
+LABEL module="manufacturing"
+LABEL module_number="06"
+LABEL description="Manufacturing Module - Production planning, BOM, work orders"
+
+# Copy Manufacturing custom app
+COPY --chown=frappe:frappe apps/saas_manufacturing_custom apps/saas_manufacturing_custom
+
+# Install the custom app
+RUN bench --site all install-app saas_manufacturing_custom 2>/dev/null || true
+
+# Build assets
+RUN bench build --app saas_manufacturing_custom 2>/dev/null || true
+
+# Module-specific environment variables
+ENV MODULE_NAME=manufacturing
+ENV MODULE_ENABLED=true
+ENV MODULE_FEATURES="bill_of_materials,work_orders,production_planning,workstations,operations,routing,subcontracting,capacity_planning,job_cards"
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/api/method/frappe.client.get_count?doctype=Work%20Order || exit 1
+
+CMD ["bench", "serve", "--host", "0.0.0.0"]

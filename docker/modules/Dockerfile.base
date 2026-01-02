@@ -1,0 +1,45 @@
+#==============================================================================
+# ERPNext Module Base Dockerfile
+# Version: 1.0.0
+# 
+# This is the base image for all ERPNext module containers.
+# Each module extends this image with its specific customizations.
+#==============================================================================
+
+FROM frappe/erpnext:v16
+
+LABEL maintainer="SaaS Platform <support@your-company.com>"
+LABEL version="1.0.0"
+LABEL description="ERPNext SaaS Module Base Image"
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV FRAPPE_SITE_NAME_HEADER=erpnext.local
+
+# Install additional system dependencies
+USER root
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    jq \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
+
+# Switch back to frappe user
+USER frappe
+
+# Set working directory
+WORKDIR /home/frappe/frappe-bench
+
+# Create directories for custom apps
+RUN mkdir -p apps/custom_apps
+
+# Copy common configuration
+COPY --chown=frappe:frappe configs/common_site_config.json sites/common_site_config.json
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/api/method/ping || exit 1
+
+# Default command
+CMD ["bench", "serve", "--host", "0.0.0.0"]

@@ -1,0 +1,35 @@
+#==============================================================================
+# ERPNext Selling Module Dockerfile
+# Version: 1.0.0
+# Module: 03 - Selling
+# Description: Sales orders, quotations, invoices
+#==============================================================================
+
+FROM erpnext-saas/base:v16
+
+LABEL module="selling"
+LABEL module_number="03"
+LABEL description="Selling Module - Sales orders, quotations, invoices"
+
+# Copy Selling custom app
+COPY --chown=frappe:frappe apps/saas_selling_custom apps/saas_selling_custom
+
+# Install the custom app
+RUN bench --site all install-app saas_selling_custom 2>/dev/null || true
+
+# Build assets
+RUN bench build --app saas_selling_custom 2>/dev/null || true
+
+# Module-specific environment variables
+ENV MODULE_NAME=selling
+ENV MODULE_ENABLED=true
+ENV MODULE_FEATURES="quotations,sales_orders,sales_invoices,pricing_rules,discounts,shipping,sales_analytics,commission_tracking,territory_management"
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/api/method/frappe.client.get_count?doctype=Sales%20Order || exit 1
+
+CMD ["bench", "serve", "--host", "0.0.0.0"]

@@ -1,0 +1,35 @@
+#==============================================================================
+# ERPNext Stock Module Dockerfile
+# Version: 1.0.0
+# Module: 05 - Stock
+# Description: Inventory management, warehouses
+#==============================================================================
+
+FROM erpnext-saas/base:v16
+
+LABEL module="stock"
+LABEL module_number="05"
+LABEL description="Stock Module - Inventory management, warehouses"
+
+# Copy Stock custom app
+COPY --chown=frappe:frappe apps/saas_stock_custom apps/saas_stock_custom
+
+# Install the custom app
+RUN bench --site all install-app saas_stock_custom 2>/dev/null || true
+
+# Build assets
+RUN bench build --app saas_stock_custom 2>/dev/null || true
+
+# Module-specific environment variables
+ENV MODULE_NAME=stock
+ENV MODULE_ENABLED=true
+ENV MODULE_FEATURES="warehouse_management,stock_entry,stock_reconciliation,batch_tracking,serial_numbers,inventory_valuation,reorder_levels,stock_reports,barcode_scanning"
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/api/method/frappe.client.get_count?doctype=Warehouse || exit 1
+
+CMD ["bench", "serve", "--host", "0.0.0.0"]

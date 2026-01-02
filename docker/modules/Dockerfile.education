@@ -1,0 +1,39 @@
+#==============================================================================
+# ERPNext Education Module Dockerfile
+# Version: 1.0.0
+# Module: 14 - Education
+# Description: Schools, courses, students
+#==============================================================================
+
+FROM erpnext-saas/base:v16
+
+LABEL module="education"
+LABEL module_number="14"
+LABEL description="Education Module - Schools, courses, students"
+
+# Copy Education custom app
+COPY --chown=frappe:frappe apps/saas_education_custom apps/saas_education_custom
+
+# Install Education app
+RUN bench get-app education --branch version-16 2>/dev/null || true
+RUN bench --site all install-app education 2>/dev/null || true
+
+# Install the custom app
+RUN bench --site all install-app saas_education_custom 2>/dev/null || true
+
+# Build assets
+RUN bench build 2>/dev/null || true
+
+# Module-specific environment variables
+ENV MODULE_NAME=education
+ENV MODULE_ENABLED=true
+ENV MODULE_FEATURES="student_management,course_scheduling,attendance_tracking,fee_management,examination,grading,timetable,student_portal,guardian_portal,library_management"
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/api/method/frappe.client.get_count?doctype=Student || exit 1
+
+CMD ["bench", "serve", "--host", "0.0.0.0"]

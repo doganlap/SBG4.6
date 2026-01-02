@@ -1,0 +1,39 @@
+#==============================================================================
+# ERPNext Healthcare Module Dockerfile
+# Version: 1.0.0
+# Module: 15 - Healthcare
+# Description: Patients, appointments, lab tests
+#==============================================================================
+
+FROM erpnext-saas/base:v16
+
+LABEL module="healthcare"
+LABEL module_number="15"
+LABEL description="Healthcare Module - Patients, appointments, lab tests"
+
+# Copy Healthcare custom app
+COPY --chown=frappe:frappe apps/saas_healthcare_custom apps/saas_healthcare_custom
+
+# Install Healthcare app
+RUN bench get-app https://github.com/frappe/health --branch version-16 2>/dev/null || true
+RUN bench --site all install-app healthcare 2>/dev/null || true
+
+# Install the custom app
+RUN bench --site all install-app saas_healthcare_custom 2>/dev/null || true
+
+# Build assets
+RUN bench build 2>/dev/null || true
+
+# Module-specific environment variables
+ENV MODULE_NAME=healthcare
+ENV MODULE_ENABLED=true
+ENV MODULE_FEATURES="patient_management,appointments,practitioner_management,lab_tests,prescriptions,medical_records,inpatient_management,clinical_procedures,patient_portal,insurance_billing"
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/api/method/frappe.client.get_count?doctype=Patient || exit 1
+
+CMD ["bench", "serve", "--host", "0.0.0.0"]
