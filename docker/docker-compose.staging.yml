@@ -1,0 +1,318 @@
+#==============================================================================
+# ERPNext Multi-Module SaaS Platform - Staging Environment
+# Docker Compose Configuration
+# Version: 1.0.0
+#
+# Staging Environment:
+# - Ports: 3000-3009, 3307, 6380-6382
+# - Container names: staging-* prefix
+# - Volumes: staging-* prefix
+# - Network: staging-network
+#==============================================================================
+
+version: "3.9"
+
+x-erpnext-common: &erpnext-common
+  image: frappe/erpnext:v16
+  environment: &erpnext-env
+    - FRAPPE_SITE_NAME_HEADER=${SITE_NAME:-erpnext.local}
+    - DB_HOST=mariadb
+    - REDIS_CACHE=redis-cache:6379
+    - REDIS_QUEUE=redis-queue:6379
+    - REDIS_SOCKETIO=redis-socketio:6379
+    - SOCKETIO_PORT=9000
+  volumes:
+    - staging-sites-vol:/home/frappe/frappe-bench/sites
+    - staging-logs-vol:/home/frappe/frappe-bench/logs
+  depends_on:
+    mariadb:
+      condition: service_healthy
+    redis-cache:
+      condition: service_started
+    redis-queue:
+      condition: service_started
+    redis-socketio:
+      condition: service_started
+  networks:
+    - staging-network
+
+services:
+  #============================================================================
+  # Database Services
+  #============================================================================
+  mariadb:
+    image: mariadb:10.6
+    container_name: staging-mariadb
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+      - --innodb-file-format=Barracuda
+      - --innodb-file-per-table=1
+      - --innodb-large-prefix=1
+      - --innodb-buffer-pool-size=2G
+      - --max-allowed-packet=256M
+      - --max-connections=500
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-erpnext}
+      MYSQL_USER: ${DB_USER:-erpnext}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-erpnextpassword}
+    volumes:
+      - staging-mariadb-data:/var/lib/mysql
+      - ./databases/init:/docker-entrypoint-initdb.d
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - staging-network
+
+  #============================================================================
+  # Redis Services
+  #============================================================================
+  redis-cache:
+    image: redis:7-alpine
+    container_name: staging-redis-cache
+    restart: unless-stopped
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - staging-redis-cache-data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - staging-network
+
+  redis-queue:
+    image: redis:7-alpine
+    container_name: staging-redis-queue
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - staging-redis-queue-data:/data
+    ports:
+      - "6381:6379"
+    networks:
+      - staging-network
+
+  redis-socketio:
+    image: redis:7-alpine
+    container_name: staging-redis-socketio
+    restart: unless-stopped
+    volumes:
+      - staging-redis-socketio-data:/data
+    ports:
+      - "6382:6379"
+    networks:
+      - staging-network
+
+  #============================================================================
+  # ERPNext Core Services
+  #============================================================================
+  erpnext-backend:
+    <<: *erpnext-common
+    container_name: staging-erpnext-backend
+    restart: unless-stopped
+    command: ["bench", "serve", "--port", "8000"]
+    ports:
+      - "3004:8000"
+
+  erpnext-socketio:
+    <<: *erpnext-common
+    container_name: staging-erpnext-socketio
+    restart: unless-stopped
+    command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
+    ports:
+      - "3006:9000"
+
+  erpnext-scheduler:
+    <<: *erpnext-common
+    container_name: staging-erpnext-scheduler
+    restart: unless-stopped
+    command: ["bench", "schedule"]
+
+  erpnext-worker-short:
+    <<: *erpnext-common
+    container_name: staging-erpnext-worker-short
+    restart: unless-stopped
+    command: ["bench", "worker", "--queue", "short"]
+
+  erpnext-worker-long:
+    <<: *erpnext-common
+    container_name: staging-erpnext-worker-long
+    restart: unless-stopped
+    command: ["bench", "worker", "--queue", "long"]
+
+  erpnext-worker-default:
+    <<: *erpnext-common
+    container_name: staging-erpnext-worker-default
+    restart: unless-stopped
+    command: ["bench", "worker", "--queue", "default"]
+
+  #============================================================================
+  # ABP SaaS Backend
+  #============================================================================
+  abp-backend:
+    build:
+      context: ../abp-backend
+      dockerfile: Dockerfile
+    container_name: staging-abp-backend
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - ConnectionStrings__Default=Server=mariadb;Port=3306;Database=saas_admin;Uid=root;Pwd=${DB_ROOT_PASSWORD:-rootpassword}
+      - App__SelfUrl=https://os.staging.yourdomain.com
+      - App__CorsOrigins=https://admin.staging.yourdomain.com,https://tenant.staging.yourdomain.com,https://portal.staging.yourdomain.com
+      - AuthServer__Authority=https://os.staging.yourdomain.com
+      - AuthServer__RequireHttpsMetadata=false
+      - ASPNETCORE_URLS=http://+:5000
+      - Abp__Localization__DefaultLanguage=en
+    ports:
+      - "3005:5000"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - staging-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  #============================================================================
+  # SaaS Admin Portal
+  #============================================================================
+  saas-admin-portal:
+    build:
+      context: ../saas-admin-portal
+      dockerfile: Dockerfile
+    container_name: staging-saas-admin-portal
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - API_URL=http://erpnext-backend:8000
+      - DATABASE_URL=mysql://root:${DB_ROOT_PASSWORD:-rootpassword}@mariadb:3306/saas_admin
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mariadb
+      - erpnext-backend
+    networks:
+      - staging-network
+
+  #============================================================================
+  # Tenant Admin Portal
+  #============================================================================
+  tenant-admin-portal:
+    build:
+      context: ../tenant-admin-portal
+      dockerfile: Dockerfile
+    container_name: staging-tenant-admin-portal
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - API_URL=http://erpnext-backend:8000
+      - DATABASE_URL=mysql://root:${DB_ROOT_PASSWORD:-rootpassword}@mariadb:3306/tenant_admin
+    ports:
+      - "3001:3000"
+    depends_on:
+      - mariadb
+      - erpnext-backend
+    networks:
+      - staging-network
+
+  #============================================================================
+  # Customer Portal
+  #============================================================================
+  customer-portal:
+    build:
+      context: ../customer-portal
+      dockerfile: Dockerfile
+    container_name: staging-customer-portal
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - API_URL=http://erpnext-backend:8000
+    ports:
+      - "3002:3000"
+    depends_on:
+      - erpnext-backend
+    networks:
+      - staging-network
+
+  #============================================================================
+  # Showcase Pages
+  #============================================================================
+  showcase-pages:
+    build:
+      context: ../showcase-pages
+      dockerfile: Dockerfile
+    container_name: staging-showcase-pages
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    ports:
+      - "3003:3000"
+    networks:
+      - staging-network
+
+  #============================================================================
+  # Nginx Reverse Proxy (Optional for staging)
+  #============================================================================
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: staging-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - staging-sites-vol:/home/frappe/frappe-bench/sites:ro
+      - staging-nginx-logs:/var/log/nginx
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    ports:
+      - "3007:80"
+      - "3008:443"
+    depends_on:
+      - erpnext-backend
+      - erpnext-socketio
+      - saas-admin-portal
+      - tenant-admin-portal
+      - customer-portal
+      - showcase-pages
+    networks:
+      - staging-network
+
+#==============================================================================
+# Networks
+#==============================================================================
+networks:
+  staging-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16
+
+#==============================================================================
+# Volumes
+#==============================================================================
+volumes:
+  staging-mariadb-data:
+    driver: local
+  staging-redis-cache-data:
+    driver: local
+  staging-redis-queue-data:
+    driver: local
+  staging-redis-socketio-data:
+    driver: local
+  staging-sites-vol:
+    driver: local
+  staging-logs-vol:
+    driver: local
+  staging-nginx-logs:
+    driver: local

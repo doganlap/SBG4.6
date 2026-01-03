@@ -1,0 +1,349 @@
+#==============================================================================
+# Dogan Consult Operating System - HTTPS Configuration
+# Version: 1.0.0
+#==============================================================================
+
+# HTTP to HTTPS redirect for main domain
+server {
+    listen 80;
+    server_name doganconsult.com www.doganconsult.com;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS - Main domain (www and apex)
+server {
+    listen 443 ssl http2;
+    server_name doganconsult.com www.doganconsult.com;
+
+    # SSL configuration
+    ssl_certificate /etc/letsencrypt/live/doganconsult.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/doganconsult.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        proxy_pass http://showcase;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+# HTTP to HTTPS redirect for OS
+server {
+    listen 80;
+    server_name os.doganconsult.com;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS - Main Dogan Consult Operating System site
+server {
+    listen 443 ssl http2;
+    server_name os.doganconsult.com;
+
+    # SSL configuration
+    ssl_certificate /etc/letsencrypt/live/os.doganconsult.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/os.doganconsult.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Dogan Consult Operating System static files
+    location /assets {
+        alias /home/frappe/frappe-bench/sites/assets;
+        add_header Cache-Control "max-age=31536000, public";
+    }
+
+    # Dogan Consult Operating System files
+    location /files {
+        alias /home/frappe/frappe-bench/sites/erpnext.local/public/files;
+    }
+
+    location /private/files {
+        internal;
+        alias /home/frappe/frappe-bench/sites/erpnext.local/private/files;
+    }
+
+    # Socket.io
+    location /socket.io {
+        proxy_pass http://erpnext-socketio;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400;
+    }
+
+    # Dogan Consult Operating System API with rate limiting
+    location /api {
+        limit_req zone=api_limit burst=50 nodelay;
+        proxy_pass http://erpnext-backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 60;
+    }
+
+    # Login rate limiting
+    location /api/method/login {
+        limit_req zone=login_limit burst=5 nodelay;
+        proxy_pass http://erpnext-backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Main application
+    location / {
+        proxy_pass http://erpnext-backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300;
+    }
+}
+
+# HTTP to HTTPS redirect for admin
+server {
+    listen 80;
+    server_name admin.doganconsult.com;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS - SaaS Admin Portal
+server {
+    listen 443 ssl http2;
+    server_name admin.doganconsult.com;
+
+    # SSL configuration
+    ssl_certificate /etc/letsencrypt/live/os.doganconsult.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/os.doganconsult.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        proxy_pass http://saas-admin;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+# HTTP to HTTPS redirect for tenant
+server {
+    listen 80;
+    server_name tenant.doganconsult.com;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS - Tenant Admin Portal
+server {
+    listen 443 ssl http2;
+    server_name tenant.doganconsult.com;
+
+    # SSL configuration
+    ssl_certificate /etc/letsencrypt/live/os.doganconsult.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/os.doganconsult.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        proxy_pass http://tenant-admin;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+# HTTP to HTTPS redirect for portal
+server {
+    listen 80;
+    server_name portal.doganconsult.com;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS - Customer Portal
+server {
+    listen 443 ssl http2;
+    server_name portal.doganconsult.com;
+
+    # SSL configuration
+    ssl_certificate /etc/letsencrypt/live/os.doganconsult.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/os.doganconsult.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        proxy_pass http://customer-portal;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+# HTTP to HTTPS redirect for demo
+server {
+    listen 80;
+    server_name demo.doganconsult.com;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS - Showcase Pages
+server {
+    listen 443 ssl http2;
+    server_name demo.doganconsult.com;
+
+    # SSL configuration
+    ssl_certificate /etc/letsencrypt/live/os.doganconsult.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/os.doganconsult.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        proxy_pass http://showcase;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+# HTTP to HTTPS redirect for wildcard tenants
+server {
+    listen 80;
+    server_name ~^(?<tenant>.+)\.os\.doganconsult\.com$;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS - Wildcard subdomain for tenants
+server {
+    listen 443 ssl http2;
+    server_name ~^(?<tenant>.+)\.os\.doganconsult\.com$;
+
+    # SSL configuration
+    ssl_certificate /etc/letsencrypt/live/os.doganconsult.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/os.doganconsult.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Extract tenant from subdomain and route to appropriate instance
+    set $tenant_backend erpnext-backend;
+
+    location / {
+        proxy_pass http://$tenant_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Tenant-ID $tenant;
+        proxy_read_timeout 300;
+    }
+
+    location /socket.io {
+        proxy_pass http://erpnext-socketio;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Tenant-ID $tenant;
+    }
+}

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>AbpSaasPlatform.Application.Contracts</RootNamespace>
+    <AssemblyName>AbpSaasPlatform.Application.Contracts</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AbpSaasPlatform.Domain.Shared\AbpSaasPlatform.Domain.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Ddd.Application.Contracts" Version="8.1.0" />
+  </ItemGroup>
+
+</Project>

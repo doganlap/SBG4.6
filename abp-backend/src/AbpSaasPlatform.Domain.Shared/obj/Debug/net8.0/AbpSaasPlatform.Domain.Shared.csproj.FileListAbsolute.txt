@@ -1,0 +1,15 @@
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/obj/Debug/net8.0/AbpSaasPlatform.Domain.Shared.csproj.AssemblyReference.cache
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/obj/Debug/net8.0/AbpSaasPlatform.Domain.Shared.GeneratedMSBuildEditorConfig.editorconfig
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/obj/Debug/net8.0/AbpSaasPlatform.Domain.Shared.AssemblyInfoInputs.cache
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/obj/Debug/net8.0/AbpSaasPlatform.Domain.Shared.AssemblyInfo.cs
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/obj/Debug/net8.0/AbpSaasPlatform.Domain.Shared.csproj.CoreCompileInputs.cache
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/obj/Debug/net8.0/AbpSaasPlatform.Domain.Shared.sourcelink.json
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/bin/Debug/net8.0/AbpSaasPlatform.Domain.Shared.deps.json
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/bin/Debug/net8.0/AbpSaasPlatform.Domain.Shared.dll
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/bin/Debug/net8.0/AbpSaasPlatform.Domain.Shared.pdb
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/bin/Debug/net8.0/AbpSaasPlatform.Domain.Shared.xml
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/obj/Debug/net8.0/AbpSaasPlatform.Domain.Shared.dll
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/obj/Debug/net8.0/refint/AbpSaasPlatform.Domain.Shared.dll
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/obj/Debug/net8.0/AbpSaasPlatform.Domain.Shared.xml
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/obj/Debug/net8.0/AbpSaasPlatform.Domain.Shared.pdb
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/obj/Debug/net8.0/ref/AbpSaasPlatform.Domain.Shared.dll

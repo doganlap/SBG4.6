@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "abp-backend", "abp-backend", "{1170DAC1-AF59-E37F-2C73-59FEFE32198E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8D61D5F6-131D-2943-BE38-5CB135F87C68}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AbpSaasPlatform.Domain.Shared", "abp-backend\src\AbpSaasPlatform.Domain.Shared\AbpSaasPlatform.Domain.Shared.csproj", "{4E817815-C066-E007-EED7-21DB476B67F2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4E817815-C066-E007-EED7-21DB476B67F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E817815-C066-E007-EED7-21DB476B67F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E817815-C066-E007-EED7-21DB476B67F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E817815-C066-E007-EED7-21DB476B67F2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8D61D5F6-131D-2943-BE38-5CB135F87C68} = {1170DAC1-AF59-E37F-2C73-59FEFE32198E}
+		{4E817815-C066-E007-EED7-21DB476B67F2} = {8D61D5F6-131D-2943-BE38-5CB135F87C68}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B8D3F78A-EB2B-4819-88AE-9D72F240C900}
+	EndGlobalSection
+EndGlobal

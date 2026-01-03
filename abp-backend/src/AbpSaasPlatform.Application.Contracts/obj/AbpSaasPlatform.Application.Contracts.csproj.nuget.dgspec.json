@@ -1,0 +1,142 @@
+{
+  "format": 1,
+  "restore": {
+    "/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Application.Contracts/AbpSaasPlatform.Application.Contracts.csproj": {}
+  },
+  "projects": {
+    "/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Application.Contracts/AbpSaasPlatform.Application.Contracts.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Application.Contracts/AbpSaasPlatform.Application.Contracts.csproj",
+        "projectName": "AbpSaasPlatform.Application.Contracts",
+        "projectPath": "/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Application.Contracts/AbpSaasPlatform.Application.Contracts.csproj",
+        "packagesPath": "/root/.nuget/packages/",
+        "outputPath": "/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Application.Contracts/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/root/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/AbpSaasPlatform.Domain.Shared.csproj": {
+                "projectPath": "/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/AbpSaasPlatform.Domain.Shared.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Volo.Abp.Ddd.Application.Contracts": {
+              "target": "Package",
+              "version": "[8.1.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.122/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/AbpSaasPlatform.Domain.Shared.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/AbpSaasPlatform.Domain.Shared.csproj",
+        "projectName": "AbpSaasPlatform.Domain.Shared",
+        "projectPath": "/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/AbpSaasPlatform.Domain.Shared.csproj",
+        "packagesPath": "/root/.nuget/packages/",
+        "outputPath": "/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Domain.Shared/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/root/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Volo.Abp.Authorization": {
+              "target": "Package",
+              "version": "[8.1.0, )"
+            },
+            "Volo.Abp.Core": {
+              "target": "Package",
+              "version": "[8.1.0, )"
+            },
+            "Volo.Abp.Ddd.Domain.Shared": {
+              "target": "Package",
+              "version": "[8.1.0, )"
+            },
+            "Volo.Abp.Localization": {
+              "target": "Package",
+              "version": "[8.1.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/8.0.122/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

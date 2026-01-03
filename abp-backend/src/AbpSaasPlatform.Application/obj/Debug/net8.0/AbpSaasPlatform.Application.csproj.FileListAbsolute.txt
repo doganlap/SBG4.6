@@ -1,0 +1,6 @@
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Application/obj/Debug/net8.0/AbpSaasPlatform.Application.csproj.AssemblyReference.cache
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Application/obj/Debug/net8.0/AbpSaasPlatform.Application.GeneratedMSBuildEditorConfig.editorconfig
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Application/obj/Debug/net8.0/AbpSaasPlatform.Application.AssemblyInfoInputs.cache
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Application/obj/Debug/net8.0/AbpSaasPlatform.Application.AssemblyInfo.cs
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Application/obj/Debug/net8.0/AbpSaasPlatform.Application.csproj.CoreCompileInputs.cache
+/home/dogan/erpnext-saas-platform/abp-backend/src/AbpSaasPlatform.Application/obj/Debug/net8.0/AbpSaasPlatform.Application.sourcelink.json

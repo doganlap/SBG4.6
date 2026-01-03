@@ -1,7 +1,7 @@
 #==============================================================================
 # ERPNext Multi-Module SaaS Platform - Docker Compose Configuration
 # Version: 1.0.0
-# 
+#
 # This compose file orchestrates:
 # - All 22 ERPNext modules as separate services
 # - MariaDB databases (master + per-tenant)
@@ -115,7 +115,7 @@ services:
     <<: *erpnext-common
     container_name: erpnext-backend
     restart: unless-stopped
-    command: ["bench", "serve", "--host", "0.0.0.0"]
+    command: ["bench", "serve", "--port", "8000"]
     ports:
       - "8000:8000"
 
@@ -150,6 +150,37 @@ services:
     container_name: erpnext-worker-default
     restart: unless-stopped
     command: ["bench", "worker", "--queue", "default"]
+
+  #============================================================================
+  # ABP SaaS Backend
+  #============================================================================
+  abp-backend:
+    build:
+      context: ../abp-backend
+      dockerfile: Dockerfile
+    container_name: abp-backend
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Default=Server=mariadb;Port=3306;Database=saas_admin;Uid=root;Pwd=${DB_ROOT_PASSWORD:-rootpassword}
+      - App__SelfUrl=https://os.doganconsult.com
+      - App__CorsOrigins=https://admin.doganconsult.com,https://tenant.doganconsult.com,https://portal.doganconsult.com
+      - AuthServer__Authority=https://os.doganconsult.com
+      - AuthServer__RequireHttpsMetadata=false
+      - ASPNETCORE_URLS=http://+:5000
+      - Abp__Localization__DefaultLanguage=en
+    ports:
+      - "5000:5000"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - erpnext-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   #============================================================================
   # SaaS Admin Portal
@@ -238,6 +269,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
       - sites-vol:/home/frappe/frappe-bench/sites:ro
       - nginx-logs:/var/log/nginx
     ports:

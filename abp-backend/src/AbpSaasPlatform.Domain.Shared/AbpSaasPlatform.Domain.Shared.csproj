@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>AbpSaasPlatform</RootNamespace>
+    <AssemblyName>AbpSaasPlatform.Domain.Shared</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Core" Version="8.1.0" />
+    <PackageReference Include="Volo.Abp.Ddd.Domain.Shared" Version="8.1.0" />
+    <PackageReference Include="Volo.Abp.Authorization" Version="8.1.0" />
+    <PackageReference Include="Volo.Abp.Localization" Version="8.1.0" />
+  </ItemGroup>
+
+</Project>
